@@ -56,7 +56,7 @@ def predict_next_day(df, features_for_scaler, features_for_model, model, scaler,
         raise ValueError("Not enough data to make prediction.")
 
     # all features scaled
-    recent_data = df[features_for_scaler].values[-n_steps:]
+    recent_data = df[features_for_scaler].iloc[-n_steps:]
     scaled_input = scaler.transform(recent_data)
 
     # select scaled features for train without target feature "close"
@@ -72,8 +72,6 @@ def predict_next_day(df, features_for_scaler, features_for_model, model, scaler,
     padded[0, target_index_in_scaler] = pred
     predicted_close = scaler.inverse_transform(padded)[0, target_index_in_scaler]
     return predicted_close
-
-
 
 
 def load_model_2(model_path, feature_dim):

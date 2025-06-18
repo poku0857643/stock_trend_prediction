@@ -19,12 +19,13 @@ from trendmodel.model import model_lstm
 import logging
 from pydantic import BaseModel
 from trendmodel.model.model_lstm import predict_next_day
-
+import time
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
-
+from dotenv import load_dotenv
 app = FastAPI()
+load_dotenv()
 
 
 ####
@@ -41,7 +42,7 @@ TARGET_INDEX = FEATURES_SCALER.index(TARGET_FEATURE)
 # Load the model and scaler
 # MODEL_PATH = os.getenv("MODEL_PATH", "model/model_lstm.pth")
 # SCALER_PATH = os.getenv("SCALER_PATH", "model/scaler.pkl")
-MODEL_PATH = "trendmodel/model_checkpoints/latest_checkpoint.pth"
+MODEL_PATH = "trendmodel/model_checkpoints/latest_checkpoint_0605.pth"
 
 ###
 # configurations for genStratetgies
@@ -101,12 +102,12 @@ class FaultTolerantTrendPredictor:
                 # Try default scaler
                 DEFAULT_SCALER_PATH =  f"trendmodel/save_scaler/default_scaler.pkl"
                 if os.path.exists(DEFAULT_SCALER_PATH):
-                    scaler_path = DEFAULT_SCALER_PATH
+                    SCALER_PATH = DEFAULT_SCALER_PATH
                 else:
                     raise FileNotFoundError(f"No scaler availablr for {ticker}")
 
             # Load model and scaler
-            scaler = joblib.load(scaler_path)
+            scaler = joblib.load(SCALER_PATH)
             model = model_lstm.load_model_2(MODEL_PATH, feature_dim=len(FEATURES_MODEL))
 
             # Cache the loaded model and scaler
@@ -130,6 +131,7 @@ class FaultTolerantTrendPredictor:
 
         # Strategy 1: Try specific ticker file
         data_paths = [
+            f"test_data/csv_files/{ticker}.csv",
             f"test_api/{ticker}.csv",
             f"data/{ticker}.csv",
             f"market_data/{ticker}.csv",
@@ -142,7 +144,7 @@ class FaultTolerantTrendPredictor:
                     df = pd.read_csv(data_path)
 
                     # filter for specific ticker if column exists
-                    if "ticker in df.columns":
+                    if "ticker" in df.columns:
                         ticker_data = df[df["ticker"] == ticker.upper()]
                         if not ticker_data.empty:
                             self.data_cache[cache_key] = ticker_data
@@ -167,9 +169,15 @@ class FaultTolerantTrendPredictor:
             # Load model and scaler
             model, scaler = await self.load_model_and_scaler(ticker)
 
+            # Ensure all required columns are present
+            missing_cols = [col for col in FEATURES_SCALER if col not in df.columns]
+            if missing_cols:
+                raise ValueError(f"Missing required columns for predictionL {missing_cols}")
+
+
             # Make prediction
             predicted_close = model_lstm.predict_next_day(
-                df,
+                df[FEATURES_SCALER],
                 FEATURES_SCALER,
                 FEATURES_MODEL,
                 model,
@@ -355,7 +363,8 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
                     extractor = TextExtractor(folder_path)
                     embeddings[f"{folder_type}_embeddings"] = extractor.extract_text_from_pdfs()
                     valid_folders += 1
-                    logger.info(f"Successfullt processed {folder_type} folder: {len(embeddings[f"{folder_type}_embeddings"])} documents")
+                    key = f"{folder_type}_embeddings"
+                    logger.info(f"Successfullt processed {folder_type} folder: {len(embeddings[key])} documents")
                 else:
                     embeddings[f"{folder_type}_embeddings"] = []
                     logger.warning(f"Folder {folder_type} not available: {folder_path}")
@@ -434,6 +443,26 @@ async def health_check():
     except:
         health_status["services"]["trend_prediction"] = "unhealthy"
 
+    # PDF processing health check for local, online, and cloud folders
+    pdf_folders = {
+        "local": os.getenv("PDF_FOLDER_PATH", ""),
+        "outsource": os.getenv("OUTSOURCE_FOLDER_PATH", ""),
+        "cloud": os.getenv("CLOUD_FOLDER_PATH", ""),
+    }
+    pdf_statuses = {}
+    for folder_type, folder_path in pdf_folders.items():
+        try:
+            if folder_path and Path(folder_path).exists() and any(Path(folder_path).glob("*.pdf")):
+                extractor = TextExtractor(folder_path)
+                _ = extractor.extract_text_from_pdfs()
+                pdf_statuses[folder_type] = "healthy"
+            else:
+                pdf_statuses[folder_type]= "no_pdfs_found"
+        except Exception as e:
+            pdf_statuses[folder_type] = f"unhealthy ({str(e)})"
+
+    health_status["services"]["pdf_processing"] = pdf_statuses
+
     # Test model loading
     try:
         if os.path.exists(MODEL_PATH):
@@ -443,8 +472,9 @@ async def health_check():
     except:
         health_status["services"]["model_loading"] = "unhealthy"
 
-    # Check if any service is unhealthy
-    if "unhealthy" in health_status["services"].values():
+
+    # Optionally, update the final status check:
+    if any(v == "unhealthy" for v in health_status["services"].values()):
         health_status["status"] = "degraded"
 
     return health_status

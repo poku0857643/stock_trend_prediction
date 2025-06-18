@@ -7,7 +7,7 @@ import tiktoken
 import warnings
 import os
 from dotenv import load_dotenv
-load_dot(env)
+
 
 import pdfplumber
 
