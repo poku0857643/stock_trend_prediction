@@ -181,6 +181,9 @@ class FaultTolerantTrendPredictor:
             if predicted_close is None:
                 raise ValueError("Prediction returned None")
 
+            # Calculate confidence using the existing method
+            confidence = self._calculate_confidence(df, predicted_close)
+
             return {
                 "ticker": ticker.upper(),
                 "predicted_next_close": float(predicted_close),
