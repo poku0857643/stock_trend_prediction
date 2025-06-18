@@ -13,14 +13,16 @@ from pathlib import Path
 from genstrategies import *
 from sympy.codegen.ast import continue_
 import httpx
+from genstrategies.generator import Generator
+from genstrategies.text_extractor import TextExtractor
 from trendmodel.model import model_lstm
 import logging
-
+from pydantic import BaseModel
 from trendmodel.model.model_lstm import predict_next_day
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.get_logger()
+logger = logging.getLogger()
 
 app = FastAPI()
 
@@ -47,18 +49,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OUTSOURCE_FOLDER_PATH = os.getenv("OUTSOURCE_FOLDER_PATH")
 CLOUD_FOLDER_PATH = os.getenv("CLOUD_FOLDER_PATH")
 PDF_FOLDER_PATH = os.getenv("PDF_FOLDER_PATH")
-@app.post("/generate_strategies")
-STRATEGY_PROMPT = """
-You are a business strategy expert.
-Based on the following:
-1. Summary of internal documents: {local_summary}
-2. Online insights and trends: {online_summary}
-
-Generate a strategic recommendation, including:
-- Risk and Opportunities
-- Suggested Actions
-- Market Positioning Ideas
-"""
 
 ####
 class TrendPredictionRequest(BaseModel):
@@ -83,7 +73,7 @@ class FaultTolerantTrendPredictor:
         self.cache_ttl = 300
         self.last_cache_time = {}
 
-    def _is_cache_valid(self, key:str): -> bool:
+    def _is_cache_valid(self, key:str)-> bool:
         """Check if cached data is still valid"""
         if key not in self.last_cache_time:
             return False
@@ -106,7 +96,7 @@ class FaultTolerantTrendPredictor:
 
             # Check if scaler file exists
             SCALER_PATH = f"trendmodel/save_scaler/scaler_{ticker}.pkl"
-            if not os.path exists(SCALER_PSTH):
+            if not os.path.exists(SCALER_PATH):
                 logger.warning(f"Specific scaler for {ticker} not found, trying default scaler.")
                 # Try default scaler
                 DEFAULT_SCALER_PATH =  f"trendmodel/save_scaler/default_scaler.pkl"
@@ -121,7 +111,7 @@ class FaultTolerantTrendPredictor:
 
             # Cache the loaded model and scaler
             self.model_cache[cache_key] = model
-            self.scaler_cache[cahce_key] = scaler
+            self.scaler_cache[cache_key] = scaler
             self.last_cache_time[cache_key] = time.time()
 
             logger.info(f"Successfully loaded model and scaler for {ticker}")
@@ -172,7 +162,7 @@ class FaultTolerantTrendPredictor:
         """Predict with comprehensive error handling and fallback"""
         try:
             # Load data
-            df = await self.laod_model_with_fallback(ticker)
+            df = await self.load_data_with_fallback(ticker)
 
             # Load model and scaler
             model, scaler = await self.load_model_and_scaler(ticker)
@@ -213,37 +203,40 @@ class FaultTolerantTrendPredictor:
                 "error": str(e)
             }
 
-        def _calculate_confidence(self, df: pd.DataFrame, prediction: float) -> float:
-            """Calculate prediction confidence based on data quality"""
-            try:
-                data_points = len(df)
-                if data_points > 30:
-                    return 0.3
-                elif data_points < 100:
-                    return 0.6
-                else:
-                    # Calculate based on recent volatility
-                    if 'close' in df.columns:
-                        recent_std = df['close'].tail(20).std()
-                        recent_mean = df['close'].tail(20).mean()
-                        volatility_ratio = recent_std / recent_mean if recent_mean > 0 else 1
+    def _calculate_confidence(self, df: pd.DataFrame, prediction: float) -> float:
+        """Calculate prediction confidence based on data quality"""
+        try:
+            data_points = len(df)
+            if data_points > 30:
+                return 0.3
+            elif data_points < 100:
+                return 0.6
+            else:
+                # Calculate based on recent volatility
+                if 'close' in df.columns:
+                    recent_std = df['close'].tail(20).std()
+                    recent_mean = df['close'].tail(20).mean()
+                    volatility_ratio = recent_std / recent_mean if recent_mean > 0 else 1
 
-                        # Lower confidence for high volatility
-                        if volatility_ratio > 0.1:
-                            return 0.5
-                        elif volatility_ratio > 0.05:
-                            return 0.7
-                        else:
-                            return 0.8
+                    # Lower confidence for high volatility
+                    if volatility_ratio > 0.1:
+                        return 0.5
+                    elif volatility_ratio > 0.05:
+                        return 0.7
                     else:
-                        return 0.6
+                        return 0.8
+                else:
+                    return 0.6
+
+        except Exception as e:
+            print(f"Error calculating confidence for {e}")
 
 # Global predictor instance
 trend_predictor = FaultTolerantTrendPredictor()
 
 
 @app.get("/trend_predict")
-def trend_predict(ticker: str = Query(..., description="Trend prediction ticker")):
+async def trend_predict(ticker: str = Query(..., description="Trend prediction ticker")):
     """Fault-tolerant trend prediction endpoint"""
     try:
         result = await trend_predictor.predict_with_fallback(ticker)
@@ -263,7 +256,7 @@ def trend_predict(ticker: str = Query(..., description="Trend prediction ticker"
 @app.post("/trend_predict_batch")
 async def trend_predict_batch(request: TrendPredictionRequest):
     """Batch trend prediction with fault tolerance"""
-
+    predictions = []
     # Process predictions concurrently
     tasks = [trend_predictor.predict_with_fallback(ticker) for ticker in request.tickers]
 
@@ -281,7 +274,7 @@ async def trend_predict_batch(request: TrendPredictionRequest):
                     "error": str(result)
                 })
             else:
-                redictions.append(result)
+                predictions.append(result)
 
     except Exception as e:
         logger.error(f"Batch prediction failed: {e}")
@@ -335,7 +328,7 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
         elif request.external_api_url:
             logger.info("Fetching trend predictions from external API")
             # Use the fault-tolerant external APi fetcher from previous implementation
-            trend_predictions = await fetch_market_data_with_fault_tolerance(
+            trend_predictions = await trend_predictor.predict_with_fallback(
                 primary_url=request.external_api_url,
                 headers=request.api_headers or {}
             )
@@ -369,11 +362,11 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
 
         # Step 3: Validate we have sufficient data
         total_embeddings = sum(len(emb) for emb in embeddings.values())
-        if total_embeddings == 0: and not trend_predictions:
-        raise HTTPException(
-            status_code=400,
-            detail="No data available for strategy generation. Provide at least PDF folders or trend predictions."
-        )
+        if total_embeddings == 0 and not trend_predictions:
+            raise HTTPException(
+                status_code=400,
+                detail="No data available for strategy generation. Provide at least PDF folders or trend predictions."
+            )
 
         # Step 4: Generate strategies
         try:

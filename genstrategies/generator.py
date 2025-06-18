@@ -29,3 +29,18 @@ class Generator:
             return response.choices[0].message.content
         except Exception as e:
             return F"Error during strategy generation: {e}"
+
+    def set_strategy_prompt(self):
+        STRATEGY_PROMPT = """
+        You are a business strategy expert.
+        Based on the following:
+        1. Summary of internal documents: {local_summary}
+        2. Online insights and trends: {online_summary}
+        
+        Generate a strategic recommendation, including:
+        - Risk and Opportunities
+        - Suggested Actions
+        - Market Positioning Ideas
+        """
+        strategy_prompt = STRATEGY_PROMPT
+        return strategy_prompt
