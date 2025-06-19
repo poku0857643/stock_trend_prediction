@@ -1,5 +1,5 @@
 from datetime import time
-
+import json
 from fastapi import FastAPI, Query, HTTPException
 import pandas as pd
 import torch
@@ -17,16 +17,31 @@ from genstrategies.generator import Generator
 from genstrategies.text_extractor import TextExtractor
 from trendmodel.model import model_lstm
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from trendmodel.model.model_lstm import predict_next_day
 import time
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 from dotenv import load_dotenv
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from fastapi import Request
+
+
+
 app = FastAPI()
 load_dotenv()
 
+# Mount static and template
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def ui_home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 ####
 # Constants
@@ -54,17 +69,19 @@ PDF_FOLDER_PATH = os.getenv("PDF_FOLDER_PATH")
 ####
 class TrendPredictionRequest(BaseModel):
     tickers:List[str]
-    confidence_threashold: float = 0.5
+    confidence_threshold: float = 0.5
 
 class StrategyGenerationRequest(BaseModel):
     local_folder: Optional[str] = None
-    online_folder: Optional[str] = None
+    outsource_folder: Optional[str] = None
     cloud_folder: Optional[str] = None
     strategy_prompt: Optional[str] = None
-    tickers: List[str] = ["AAPL"]
+    tickers: List[str] = Field(default=["AAPL"])
     use_internal_trend_api: bool = True
     external_api_url: Optional[str] = None
-    api_headers: Optional[Dict] = None
+    api_headers: Optional[Dict[str, Any]] = None
+    trend_prediction: Optional[Any] = None
+    confidence_threshold: Optional[float] = 0.5
 
 class FaultTolerantTrendPredictor:
     def __init__(self):
@@ -328,6 +345,7 @@ async def fetch_trend_predictions_internal(tickers: List[str], base_url: str = "
 
 @app.post("/generate_strategies")
 async def generate_strategies_integrated(request: StrategyGenerationRequest):
+    logger.info(f"Received request: {request}")
     """Integrated strategy generation with fault-tolerant trend prediction"""
     start_time = time.time()
 
@@ -345,12 +363,12 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
             )
         else:
             logger.info("Using default trend predictions")
-            trend_predictions = [{"prediction_close": 150.0, "confidence": 0.5}]
+            trend_predictions = [{"predicted_next_close": 150.0, "confidence": 0.5}]
 
         # Step 2. Validate folder paths and extract PDFs
         folders = {
             "local": request.local_folder,
-            "online": request.online_folder,
+            "outsource": request.outsource_folder,
             "cloud": request.cloud_folder
         }
 
@@ -364,7 +382,7 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
                     embeddings[f"{folder_type}_embeddings"] = extractor.extract_text_from_pdfs()
                     valid_folders += 1
                     key = f"{folder_type}_embeddings"
-                    logger.info(f"Successfullt processed {folder_type} folder: {len(embeddings[key])} documents")
+                    logger.info(f"Successfully processed {folder_type} folder: {len(embeddings[key])} documents")
                 else:
                     embeddings[f"{folder_type}_embeddings"] = []
                     logger.warning(f"Folder {folder_type} not available: {folder_path}")
@@ -393,19 +411,52 @@ async def generate_strategies_integrated(request: StrategyGenerationRequest):
                 generator.set_strategy_prompt(request.strategy_prompt)
 
             strategies = generator.generate_strategies()
+            logger.info(f"Strategies type: {type(strategies)}")
+            logger.info(f"Strategies content: {strategies}")
+            if isinstance(strategies, str):
+                try:
+                    strategies = json.loads(strategies)
+                except json.JSONDecodeError:
+                    strategies = {
+                        "response": [strategies],
+                        "prompt": request.strategy_prompt or "No prompt provided"
+                    }
+
+
+
+                return {
+                    "success": True,
+                    "strategies": strategies["response"],
+                    "used_prompt": strategies["prompt"],
+                    "tickers": request.tickers,
+                    "metadata": {
+                        "trend_predictions": len(trend_predictions),
+                        "successful_predictions": len([p for p in strategies["response"] if isinstance(p, dict) and p.get("status") == "success"]) if isinstance(strategies["response"], list) else 0,
+                        "folders_processed": valid_folders,
+                        "total_documents": total_embeddings,
+                        "processing_time": time.time() - start_time,
+                    },
+                    "trend_data": trend_predictions
+                }
+            # If already a dict, follow original structure
             return {
                 "success": True,
-                "strategies": strategies,
+                "strategies": strategies["response"],
+                "used_prompt": strategies["prompt"],
+                "tickers": request.tickers,
                 "metadata": {
                     "trend_predictions": len(trend_predictions),
-                    "successful_predictions": len([p for p in strategies if p.get("status") == "success"]),
+                    "successful_predictions": len([p for p in strategies["response"] if
+                                                   isinstance(p, dict) and p.get(
+                                                       "status") == "success"]) if isinstance(
+                        strategies["response"], list) else 0,
                     "folders_processed": valid_folders,
                     "total_documents": total_embeddings,
                     "processing_time": time.time() - start_time,
-                    "tickers_analyzed": request.tickers
                 },
                 "trend_data": trend_predictions
             }
+
         except Exception as e:
             logger.error(f"Strategy generation failed: {e}")
             return {

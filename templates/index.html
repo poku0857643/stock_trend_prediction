@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trend Prediction & Strategy Generator</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📈 Trend Prediction & Strategy Generator</h1>
+
+    <section>
+      <h2>1️⃣ Predict Trend</h2>
+      <input type="text" id="trendTicker" placeholder="Enter Ticker (e.g., AAPL)" />
+      <button onclick="predictTrend()">Predict</button>
+      <pre id="trendResult"></pre>
+    </section>
+
+    <section>
+      <h2>2️⃣ Generate Strategy</h2>
+      <textarea id="strategyPrompt" placeholder="Enter prompt here..."></textarea>
+      <input type="text" id="strategyTickers" placeholder="Enter tickers (comma-separated)" />
+      <label><input type="checkbox" id="useInternal" checked /> Use Internal API</label>
+      <button onclick="generateStrategy()">Generate</button>
+      <pre id="strategyResult"></pre>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
