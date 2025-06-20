@@ -1,0 +1,19 @@
+# for dev and local test
+version: "3.11"
+services:
+  trend-strategy-generation-apis:
+    build: ./apis
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  static:
+    build: ./static
+    ports:
+      - "3000:80"
+
+  volumes:
+    pgdata:
+
+

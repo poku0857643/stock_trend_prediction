@@ -2,23 +2,18 @@ from datetime import time
 import json
 from fastapi import FastAPI, Query, HTTPException
 import pandas as pd
-import torch
 import joblib
-import numpy as np
 import os
-import aiohttp
 import asyncio
 from typing import Optional, Dict, List, Any
 from pathlib import Path
 from genstrategies import *
-from sympy.codegen.ast import continue_
 import httpx
-from genstrategies.generator import Generator
-from genstrategies.text_extractor import TextExtractor
-from trendmodel.model import model_lstm
+from apis.genstrategies.generator import Generator
+from apis.genstrategies.text_extractor import TextExtractor
+from apis.trendmodel.model import model_lstm
 import logging
 from pydantic import BaseModel, Field
-from trendmodel.model.model_lstm import predict_next_day
 import time
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,8 +31,8 @@ app = FastAPI()
 load_dotenv()
 
 # Mount static and template
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static/src", StaticFiles(directory="static/src"), name="static/src")
+templates = Jinja2Templates(directory="static/templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def ui_home(request: Request):
@@ -57,7 +52,7 @@ TARGET_INDEX = FEATURES_SCALER.index(TARGET_FEATURE)
 # Load the model and scaler
 # MODEL_PATH = os.getenv("MODEL_PATH", "model/model_lstm.pth")
 # SCALER_PATH = os.getenv("SCALER_PATH", "model/scaler.pkl")
-MODEL_PATH = "trendmodel/model_checkpoints/latest_checkpoint_0605.pth"
+MODEL_PATH = "apis/trendmodel/model_checkpoints/latest_checkpoint_0605.pth"
 
 ###
 # configurations for genStratetgies
@@ -113,11 +108,11 @@ class FaultTolerantTrendPredictor:
                 raise FileNotFoundError(f"Model file {MODEL_PATH} not found.")
 
             # Check if scaler file exists
-            SCALER_PATH = f"trendmodel/save_scaler/scaler_{ticker}.pkl"
+            SCALER_PATH = f"apis/trendmodel/save_scaler/scaler_{ticker}.pkl"
             if not os.path.exists(SCALER_PATH):
                 logger.warning(f"Specific scaler for {ticker} not found, trying default scaler.")
                 # Try default scaler
-                DEFAULT_SCALER_PATH =  f"trendmodel/save_scaler/default_scaler.pkl"
+                DEFAULT_SCALER_PATH = f"apis/trendmodel/save_scaler/default_scaler.pkl"
                 if os.path.exists(DEFAULT_SCALER_PATH):
                     SCALER_PATH = DEFAULT_SCALER_PATH
                 else:

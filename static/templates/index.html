@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trend Prediction & Strategy Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Google/Apple style fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+    <header class="navbar">
+      <div class="navbar__logo">🌀 Trend Predictor</div>
+      <nav class="navbar__links">
+          <a href="#predict">Predict</a>
+          <a href="#about">About</a>
+          <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="container">
+        <section id="predict" class="card">
+<!--            <h2 class="card__title">Predict Next-Day Stock Close Trend</h2>-->
+
+<!--            <form id="predict-form" class="form">-->
+<!--                <label class="form__label" for="ticker">Ticker Symbol</label>-->
+<!--                <input class="form__input" id="trendTicker" name="ticker"-->
+<!--                       type="text" placeholder="e.g. AAPL" required autocomplete="off"/>-->
+<!--                <button class="btn" type="submit" onclick="predictTrend()">Predict</button>-->
+<!--            </form>-->
+<!--            <pre id="trendResult"></pre>-->
+<!--&lt;!&ndash;            <div id="result" class="result"></div>&ndash;&gt;-->
+<!--        </section>-->
+
+<!--        <section id="about" class="card">-->
+<!--            <h2 class="card__title">About</h2>-->
+<!--            <p>-->
+<!--                This demo calls the <code>/trend_predict</code> endpoint of our FastAPI-->
+<!--                service and renders a minimal, mobile-friendly interface.-->
+<!--            </p>-->
+<!--        </section>-->
+<!--    </main>-->
+
+
+
+
+
+    <section>
+      <h2>1️⃣ Predict Trend</h2>
+      <input type="text" id="trendTicker" placeholder="Enter Ticker (e.g., AAPL)" />
+      <button onclick="predictTrend()">Predict</button>
+      <pre id="trendResult"></pre>
+    </section>
+
+    <section>
+      <h2>2️⃣ Generate Strategy</h2>
+      <textarea id="strategyPrompt" placeholder="Enter prompt here..."></textarea>
+      <input type="text" id="strategyTickers" placeholder="Enter tickers (comma-separated)" />
+      <label><input type="checkbox" id="useInternal" checked /> Use Internal API</label>
+      <button onclick="generateStrategy()">Generate</button>
+      <pre id="strategyResult"></pre>
+    </section>
+
+    <footer class="footer">
+    © 2025 Trend Predictor
+    </footer>
+
+  <script src="/src/app.js"></script>
+</body>
+</html>

@@ -1,3 +1,14 @@
+:root {
+  --bg-color: #f5f5f7;
+  --card-bg: #ffffff;
+  --accent-color: #0071e3;
+  --text-color: #1d1d1f;
+  --text-muted: #6e6e73;
+  --radius: 12px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --font: "SF Pro Text", "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
@@ -19,15 +30,20 @@ input, textarea {
   margin: 0.5rem 0;
   padding: 0.5rem;
   font-size: 1rem;
+  border-radius: var(--radius);
 }
 
 button {
-  padding: 0.6rem 1rem;
+
   font-size: 1rem;
-  background-color: #0066cc;
+  /*background-color: var(--accent-color);*/
   color: white;
   border: none;
+  border-radius: var(--radius);
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  padding: 0.6rem 1rem;
+  background-color: #0066cc;
 }
 
 button:hover {
@@ -38,4 +54,6 @@ pre {
   background: #eee;
   padding: 1rem;
   white-space: pre-wrap;
+  border-radius: var(--radius);
 }
+
