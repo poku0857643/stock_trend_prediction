@@ -7,7 +7,6 @@ import os
 import asyncio
 from typing import Optional, Dict, List, Any
 from pathlib import Path
-from genstrategies import *
 import httpx
 from apis.genstrategies.generator import Generator
 from apis.genstrategies.text_extractor import TextExtractor
@@ -52,7 +51,7 @@ TARGET_INDEX = FEATURES_SCALER.index(TARGET_FEATURE)
 # Load the model and scaler
 # MODEL_PATH = os.getenv("MODEL_PATH", "model/model_lstm.pth")
 # SCALER_PATH = os.getenv("SCALER_PATH", "model/scaler.pkl")
-MODEL_PATH = "apis/trendmodel/model_checkpoints/latest_checkpoint_0605.pth"
+MODEL_PATH = "trendmodel/model_checkpoints/latest_checkpoint_0605.pth"
 
 ###
 # configurations for genStratetgies
