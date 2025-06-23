@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trend Prediction & Strategy Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Google/Apple style fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!--   v2 add-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+  <link rel="stylesheet" href="/src/styles_v2.css" />
+</head>
+<body>
+    <header class="navbar">
+      <div class="navbar__logo">🌀 Trend Predictor</div>
+      <nav class="navbar__links">
+          <a href="#predict">Predict</a>
+          <a href="#about">About</a>
+          <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="container">
+        <div class="header">
+            <h1>🤖 AI Trend Prediction & Strategy Dashboard</h1>
+            <p>Real-time analytics and intelligent strategy generation powered by advanced machine learning</p>
+        </div>
+<!--          Analytic trend and statistics number dashboard -scale -->
+      <div id="predict" class="card">
+        <div class="controls">
+            <button class="btn active" onclick="setTimeframe('1h')">1 Hour</button>
+            <button class="btn" onclick="setTimeframe('24h')">24 Hours</button>
+            <button class="btn" onclick="setTimeframe('7d')">7 Days</button>
+            <button class="btn" onclick="setTimeframe('30d')">30 Days</button>
+            <button class="btn" onclick="refreshData()">🔄 Refresh Data</button>
+            <button class="btn" onclick="generateStrategy()">⚡ Generate Strategy</button>
+        </div>
+<!--          Analytic trend and statistics number dashboard -card -->
+        <div class="analytic-grid">
+            <div class="analytic-card">
+                <div class="analytics-number" id="accuracy">94.7%</div>
+                <div class="analytics-label">Prediction Accuracy</div>
+            </div>
+            <div class="analytics-card">
+                <div class="analytics-number trend-up" id="trends">+127</div>
+                <div class="analytics-label">Active Trends</div>
+            </div>
+            <div class="analytics-card">
+                <div class="analytics-number" id="strategies">23</div>
+                <div class="analytics-label">Generated Strategies</div>
+            </div>
+            <div class="analytics-card">
+                <div class="analytics-number trend-up" id="roi">+342%</div>
+                <div class="analytics-label">Strategy ROI</div>
+            </div>
+        </div>
+
+
+      <div id="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📈</div>
+                    <div class="card-title">Trend Analysis</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🎯</div>
+                <div class="card-title">Prediction Metrics</div>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Current Confidence</span>
+                <span class="metric-value trend-up">92.3%</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Data Points Analyzed</span>
+                <span class="metric-value">1,247,892</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Processing Speed</span>
+                <span class="metric-value">847ms</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Model Version</span>
+                <span class="metric-value">v2.4.1</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">
+                    <span class="status-indicator status-active"></span>
+                    System Status
+                </span>
+                <span class="metric-value">Optimal</span>
+            </div>
+        </div>
+
+        <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🔮</div>
+                    <div class="card-title">Future Predictions</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">⚡</div>
+                    <div class="card-title">AI-Generated Strategies</div>
+                </div>
+                <ul class="strategy-list">
+                    <li class="strategy-item">
+                        <div class="strategy-title">Market Expansion Strategy</div>
+                        <div class="strategy-desc">Target emerging markets with 67% growth potential</div>
+                    </li>
+                    <li class="strategy-item">
+                        <div class="strategy-title">Product Diversification</div>
+                        <div class="strategy-desc">Leverage trending categories for 23% revenue increase</div>
+                    </li>
+                    <li class="strategy-item">
+                        <div class="strategy-title">Customer Retention Focus</div>
+                        <div class="strategy-desc">Implement AI-driven personalization for 31% improvement</div>
+                    </li>
+                    <li class="strategy-item">
+                        <div class="strategy-title">Supply Chain Optimization</div>
+                        <div class="strategy-desc">Predictive logistics reducing costs by 18%</div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Market Sentiment</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🚀</div>
+                    <div class="card-title">Performance Indicators</div>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Strategy Success Rate</span>
+                    <span class="metric-value trend-up">87.4%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Implementation Time</span>
+                    <span class="metric-value">4.2 days</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cost Reduction</span>
+                    <span class="metric-value trend-up">-24.8%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Revenue Impact</span>
+                    <span class="metric-value trend-up">+$2.4M</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator status-active pulse"></span>
+                        AI Agent Status
+                    </span>
+                    <span class="metric-value">Learning</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+
+      <section id="trend predicting cells">
+        <h2>1️⃣ Predict Trend</h2>
+        <input type="text" id="trendTicker" placeholder="Enter Ticker (e.g., AAPL)" />
+        <button onclick="predictTrend()">Predict</button>
+        <pre id="trendResult"></pre>
+      </section>
+
+      <section id="generate strategies cells">
+        <h2>2️⃣ Generate Strategy</h2>
+        <textarea id="strategyPrompt" placeholder="Enter prompt here..."></textarea>
+        <input type="text" id="strategyTickers" placeholder="Enter tickers (comma-separated)" />
+        <label><input type="checkbox" id="useInternal" checked /> Use Internal API</label>
+        <button onclick="generateStrategy()">Generate</button>
+        <pre id="strategyResult"></pre>
+      </section>
+
+    <footer class="footer">
+    © 2025 Trend Predictor
+    </footer>
+
+  <script src="/src/app_v2.js"></script>
+</body>
+</html>
